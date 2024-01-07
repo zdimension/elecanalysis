@@ -40,7 +40,7 @@ except sqlite3.OperationalError:
         day_kind INTEGER,
         kwh_hp INTEGER,
         kwh_hc INTEGER,
-        PRIMARY KEY (power, start, plan_id)
+        PRIMARY KEY (plan_id, power, day_kind, start)
     );""")
 
     db.commit()
