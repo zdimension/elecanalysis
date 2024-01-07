@@ -19,6 +19,8 @@ except sqlite3.OperationalError:
         day INTEGER,
         slice INTEGER CHECK (slice BETWEEN 0 AND 47),
         value INTEGER,
+        date TEXT GENERATED ALWAYS AS (PRINTF('%04d-%02d-%02d', year, month, day)) VIRTUAL,
+        hour integer GENERATED ALWAYS AS (slice / 2) VIRTUAL,
         PRIMARY KEY (year, month, day, slice)
     );""")
     cur.execute("""CREATE TABLE tempo (
@@ -26,6 +28,7 @@ except sqlite3.OperationalError:
         month INTEGER,
         day INTEGER,
         tempo INTEGER CHECK (tempo BETWEEN 0 AND 3),
+        date TEXT GENERATED ALWAYS AS (PRINTF('%04d-%02d-%02d', year, month, day)) VIRTUAL,
         PRIMARY KEY (year, month, day)
     );""")
     cur.execute("""CREATE TABLE config (
