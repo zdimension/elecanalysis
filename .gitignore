@@ -1,6 +1,6 @@
 .venv
 venv
 .idea
-app.json*
-app.pickle*
 .env
+__pycache__
+app.db
