@@ -138,8 +138,6 @@ def content():
             columns.append({'name': f"diff_{plan.value}", 'label': f"% {EdfPlan(compare_base).display_name()}",
                             'field': f"diff_{plan.value}"})
 
-        print(EdfPlan.query_plan_prices_monthly())
-
         conso = cur.execute(EdfPlan.query_plan_prices_monthly()).fetchall()
 
         def process(row):

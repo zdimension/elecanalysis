@@ -124,6 +124,3 @@ class EdfPlan(enum.Enum):
         return "SELECT strftime('%Y-%m', c.date) as date, sum(c.value) as value, " + ",".join([
             f"SUM(eur_{p.value}) as eur_{p.value}" for p in EdfPlan
         ]) + f" FROM ({EdfPlan.query_plan_prices_bihourly()}) c GROUP BY strftime('%Y-%m', c.date)"
-
-print(EdfPlan.query_plan_prices_monthly())
-exit()
