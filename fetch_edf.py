@@ -140,7 +140,7 @@ def fetch_prices():
 
             def dmy_to_iso(dmy):
                 if type(dmy) is not str:
-                    return None
+                    return "9999-12-31"
                 d, m, y = dmy.split("/")
                 return f"{y}-{m}-{d}"
 
@@ -149,10 +149,10 @@ def fetch_prices():
                 return int(Decimal(dec.replace(",", ".")) * (10 ** digits))
 
             for index, row in df.iterrows():
-                cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, 0, ?, ?)",
+                cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, 0, ?, ?, ?)",
                             (name, dmy_to_iso(row["DATE_DEBUT"]), row["P_SOUSCRITE"],
                              dec_to_fixed(row["PART_FIXE_TTC"], 2), dec_to_fixed(row["PART_VARIABLE_HP_TTC"], 4),
-                             dec_to_fixed(row["PART_VARIABLE_HC_TTC"], 4)))
+                             dec_to_fixed(row["PART_VARIABLE_HC_TTC"], 4), dmy_to_iso(row["DATE_FIN"])))
 
             print("Updated tariff", name)
             cur.execute(f"INSERT OR REPLACE INTO config VALUES ('tarif_{name}', ?)", (date.today().isoformat(),))
@@ -242,19 +242,19 @@ def add_prices_pdf():
 
     for plan, vals in edf_pdf_data.items():
         plan_data = EdfPlan(plan)
-        for dt, val in vals.items():
+        for (dt, val), dt_end in zip(vals.items(), [(date.fromisoformat(k) - timedelta(days=1)).isoformat() for k in vals.keys()][1:] + ["9999-12-31"]):
             val = val.strip().replace(",", "").split("\n")
             for row in val:
                 power, sub, *kwh = row.split(" ")
                 sub = 12 * int(sub)
                 if plan_data.is_hp_sql() is None:
                     for day_kind, hchp in enumerate(kwh, 1):
-                        cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                    (plan, dt, power, sub, day_kind, hchp, hchp))
+                        cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                    (plan, dt, power, sub, day_kind, hchp, hchp, dt_end))
                 else:
                     for day_kind, (hc, hp) in enumerate(itertools.batched(kwh, 2), 1):
-                        cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                    (plan, dt, power, sub, day_kind, hp, hc))
+                        cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                    (plan, dt, power, sub, day_kind, hp, hc, dt_end))
 
     db.commit()
 

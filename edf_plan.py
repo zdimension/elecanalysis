@@ -98,9 +98,7 @@ class EdfPlan(enum.Enum):
                     subscription * 100000 / 12 / cast(JULIANDAY(date, '+1 month') - JULIANDAY(date) as integer) / 48
                 from edf_plan_slice s
                 where plan_id='{p.value}' and power = {sub_power} and day_kind = day_{p.value}
-                and start <= c.date
-                order by start desc limit 1
-                ), 1e999) as eur_{p.value}""" for p in EdfPlan
+                and c.date between start and end), 1e999) as eur_{p.value}""" for p in EdfPlan
         ]) + f" FROM ({EdfPlan.query_plan_stats()}) c"
 
     @staticmethod
@@ -126,3 +124,6 @@ class EdfPlan(enum.Enum):
         return "SELECT strftime('%Y-%m', c.date) as date, sum(c.value) as value, " + ",".join([
             f"SUM(eur_{p.value}) as eur_{p.value}" for p in EdfPlan
         ]) + f" FROM ({EdfPlan.query_plan_prices_bihourly()}) c GROUP BY strftime('%Y-%m', c.date)"
+
+print(EdfPlan.query_plan_prices_monthly())
+exit()

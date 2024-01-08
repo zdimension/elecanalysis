@@ -30,7 +30,9 @@ except sqlite3.OperationalError:
         tempo INTEGER CHECK (tempo BETWEEN 0 AND 3),
         date TEXT GENERATED ALWAYS AS (PRINTF('%04d-%02d-%02d', year, month, day)) VIRTUAL,
         PRIMARY KEY (year, month, day)
-    );""")
+    );
+    CREATE UNIQUE INDEX tempo_date ON tempo (date);
+    """)
     cur.execute("""CREATE TABLE config (
         key TEXT PRIMARY KEY,
         value TEXT
@@ -43,6 +45,7 @@ except sqlite3.OperationalError:
         day_kind INTEGER,
         kwh_hp INTEGER,
         kwh_hc INTEGER,
+        end TEXT,
         PRIMARY KEY (plan_id, power, day_kind, start)
     );""")
 
