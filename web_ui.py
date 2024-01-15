@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from nicegui import ui, context
 from plotly.subplots import make_subplots
 
+import fetch_edf
 from config import config
 from db import cur, activation_date
 from edf_plan import EdfPlan
@@ -145,6 +146,11 @@ def content():
 
 @tab("Coût")
 def content():
+    ui.html("""
+    <div class="bg-gray-100 border-l-4 border-gray-500 text-gray-700 p-3" role="alert">
+        <p>Ici, une case grisée signifie que les prix pour la période et l'offre concernées ne sont pas connus.</p>
+    </span>""")
+
     compare_base = "base"
     plans_show = [p.value for p in (EdfPlan.BASE, EdfPlan.HPHC, EdfPlan.TEMPO, EdfPlan.ZENFLEX)]
 
@@ -169,21 +175,24 @@ def content():
             vals = {}
             for p, v in zip(plans_obj, row[2:]):
                 f = f"plan_{p.value}"
-                if v is not None:
-                    if math.isinf(v):
-                        v = float("nan")
+                vals[p.value] = float("nan")
+                res[f] = "-"
+                res[f"{f}_bgcolor"] = "background-color: rgb(240, 240, 240)"
+                if v is not None and not math.isinf(v):
                     vals[p.value] = v / 10000000
                     res[f] = "{0:.2f} €".format(vals[p.value])
-                else:
-                    vals[p.value] = float("nan")
-                    res[f] = "n/a"
+                    del res[f"{f}_bgcolor"]
             for i, p in enumerate(plans_obj):
                 diff = (vals[p.value] - vals[compare_base]) / vals[compare_base]
-                correction_factor = 1.5
-                corrected = 100 * (abs(diff) ** (1 / correction_factor))
-                res[f"diff_{p.value}_bgcolor"] = f"background-color: color-mix(in lch, {'rgb(76, 175, 80)' if diff < 0 else 'rgb(244, 67, 54)'} {corrected}%, transparent)"
-
-                res[f"diff_{p.value}"] = "{0:+.1f}%".format(100 * diff)
+                if math.isnan(diff):
+                    color = "rgb(240, 240, 240)"
+                    text = "-"
+                else:
+                    correction_factor = 1.5
+                    corrected = 100 * (abs(diff) ** (1 / correction_factor))
+                    color = f"color-mix(in lch, {'rgb(76, 175, 80)' if diff < 0 else 'rgb(244, 67, 54)'} {corrected}%, transparent)"
+                    text = "{0:+.1f}%".format(100 * diff)
+                res[f"diff_{p.value}"], res[f"diff_{p.value}_bgcolor"] = text, f"background-color: {color}"
             return res
 
         rows = [process(row) for row in conso]
@@ -193,6 +202,8 @@ def content():
         if dense.value:
             table.props("dense")
         for p in EdfPlan:
+            table.add_slot(f"body-cell-plan_{p.value}", f'<q-td key="plan_{p.value}" :props="props" :style="props.row.plan_{p.value}_bgcolor">'
+                           + "{{ props.value }}</q-td>")
             table.add_slot(f"body-cell-diff_{p.value}", f'<q-td key="diff_{p.value}" :props="props" :style="props.row.diff_{p.value}_bgcolor">'
                            + "{{ props.value }}</q-td>")
 
@@ -229,7 +240,7 @@ def content():
 
 @tab("Statistiques")
 def content():
-    pass
+    ui.label("Rien ici pour l'instant")
 
 
 @ui.page("/")
@@ -251,13 +262,20 @@ def index():
         </style>
     """)
 
-    with ui.tabs().classes("w-full") as tabbar:
-        for i, (name, *_) in enumerate(tabs):
-            tabs[i][2] = ui.tab(name)
-    with ui.tab_panels(tabbar, value=tabs[0][2]).classes("w-full h-full"):
-        for name, f, *_ in tabs:
-            with ui.tab_panel(name):
-                f()
+    @ui.refreshable
+    def all_tabs():
+        with ui.tabs().classes("w-full") as tabbar:
+            for i, (name, *_) in enumerate(tabs):
+                tabs[i][2] = ui.tab(name)
+        with ui.tab_panels(tabbar, value=tabs[0][2]).classes("w-full h-full"):
+            for name, f, *_ in tabs:
+                with ui.tab_panel(name):
+                    f()
+
+    with ui.row():
+        ui.button("Forcer màj Enedis", on_click=lambda: (fetch_edf.fetch_enedis(upto=date.today() + timedelta(days=1)), all_tabs.refresh()))
+
+    all_tabs()
 
     context.get_client().content.classes('h-[100vh]')
 

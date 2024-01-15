@@ -12,7 +12,7 @@ from db import cur, db, activation_date
 from edf_plan import EdfPlan
 
 
-def fetch_enedis():
+def fetch_enedis(upto=None):
     """
     Fetches the consumption data from Enedis using the MyElectricalData API.
 
@@ -30,7 +30,7 @@ def fetch_enedis():
     while True:
         # last info is max ymd from db
         new_start_date = last_info + timedelta(days=1)
-        if new_start_date == start_date or new_start_date >= date.today() - timedelta(days=1):
+        if new_start_date == start_date or new_start_date >= (upto or (date.today() - timedelta(days=1))):
             break
         start_date = new_start_date
         end_date = start_date + timedelta(days=7)
