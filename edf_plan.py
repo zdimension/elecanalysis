@@ -48,12 +48,13 @@ class EdfPlan(enum.Enum):
         """
         Gives an SQL expression that evaluates to the day kind (e.g. 1/2/3 for Tempo, 1/2 for Zen Week-End, 0 for Base, ...).
 
-        Assumes `c` is a table with a `date` column (YYYY-MM-DD).
+        Assumes `c` is a table with a `date` column (YYYY-MM-DD) and an `hour` column (0-23).
         """
         match self:
             case EdfPlan.TEMPO:
                 # noinspection SqlResolve
-                return "SELECT tempo FROM tempo t WHERE t.date = c.date"
+                #return "SELECT tempo FROM tempo t WHERE t.date = c.date"
+                return "SELECT tempo FROM tempo t WHERE t.date = IIF(c.hour < 6, DATE(c.date, '-1 day'), c.date)"
             case EdfPlan.ZENFLEX:
                 # todo
                 return "1"
@@ -124,3 +125,4 @@ class EdfPlan(enum.Enum):
         return "SELECT strftime('%Y-%m', c.date) as date, sum(c.value) as value, " + ",".join([
             f"SUM(eur_{p.value}) as eur_{p.value}" for p in EdfPlan
         ]) + f" FROM ({EdfPlan.query_plan_prices_bihourly()}) c GROUP BY strftime('%Y-%m', c.date)"
+

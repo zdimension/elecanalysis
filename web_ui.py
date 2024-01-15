@@ -68,11 +68,30 @@ def content():
 
     def update_plot(y, m):
         fig.data = []
+        days_in_month = monthrange(y, m)[1]
+        tempo_data_db = np.transpose(np.array(cur.execute("SELECT day, tempo FROM tempo WHERE year = ? AND month = ? ORDER BY day", (y, m)).fetchall()))
+        tempo_data = np.full(days_in_month, np.nan, dtype=np.float32)
+        if len(tempo_data_db) > 0:
+            tempo_data[tempo_data_db[0] - 1] = tempo_data_db[1]
+        fig.add_trace(go.Heatmap(
+            z=tempo_data.reshape((days_in_month, 1)),
+            zmin=1,
+            # zmax=nanmax(month_data),
+            zmax=3,
+            colorscale=[
+                [0, "rgb(21, 101, 192)"],
+                [0.5, "rgb(240, 240, 240)"],
+                [1, "rgb(198, 40, 40)"]
+            ],
+            text=[[["n/a", "Bleu", "Blanc", "Rouge"][0 if math.isnan(x) else int(x)]] for x in tempo_data],
+            hovertemplate=f"%{{y}}/{m:02d}: Jour %{{text}}<extra></extra>",
+            showscale=False,
+            ygap=1
+        ), row=1, col=1)
         month_data_db = np.transpose(np.array(cur.execute(
             "SELECT (day - 1) * 48 + slice, value FROM consumption WHERE year = ? AND month = ? ORDER BY day, slice",
             (y, m)).fetchall(),
                                               dtype=np.int32))
-        days_in_month = monthrange(y, m)[1]
         month_data = np.full(48 * days_in_month, np.nan, dtype=np.float32)
         if len(month_data_db) > 0:
             month_data[month_data_db[0]] = month_data_db[1]
@@ -84,13 +103,13 @@ def content():
             zmax=2000,
             colorscale='hot',
             colorbar=dict(
-                x=0.73,
+                x=0.748,
                 ticksuffix="&nbsp;Wh",
                 tickformat="d",
             ),
             text=[[*timelabels[1:], "00:00"]] * days_in_month,
-            hovertemplate=f"%{{y}}/{m:02d}, %{{x}}-%{{text}}: %{{z}} Wh<extra></extra>"), row=1, col=1)
-        fig.update_yaxes(tickvals=list(range(len(month_data))), ticktext=list(map(str, range(1, len(month_data) + 1))))
+            hovertemplate=f"%{{y}}/{m:02d}, %{{x}}-%{{text}}: %{{z}} Wh<extra></extra>"), row=1, col=2)
+        fig.update_yaxes(tickvals=list(range(days_in_month)), ticktext=list(map(str, range(1, days_in_month + 1))))
         sum_per_day = np.nansum(month_data, axis=1).reshape((-1, 1)) / 1000
         sum_per_day[np.isnan(month_data).all(axis=1)] = np.nan
         fig.add_trace(go.Heatmap(
@@ -100,21 +119,26 @@ def content():
             zmax=40,
             colorscale='hot',
             colorbar=dict(
-                x=1.01,
+                x=1,
                 ticksuffix="&nbsp;kWh",
                 tickformat="d"
             ),
-            hovertemplate=f"%{{y}}/{m:02d}: %{{z:.1f}} kWh<extra></extra>"), row=1, col=2)
+            hovertemplate=f"%{{y}}/{m:02d}: %{{z:.1f}} kWh<extra></extra>"), row=1, col=3)
         plot.update()
 
     date_sel = YearMonthInput(update_plot)
     date_sel.view()
 
-    fig = make_subplots(rows=1, cols=2, column_widths=[0.8, 0.2], subplot_titles=("Consommation", "Total par jour"))
+    fig = make_subplots(rows=1, cols=3, column_widths=[0.03, 0.75, 0.15], subplot_titles=("Tempo", "Consommation", "Total par jour"),
+                        horizontal_spacing=0, specs=[
+            [{}, {"l": 0.02, "r": 0.09}, {}]
+        ])
     timelabels = [f"{i:02d}:{j:02d}" for i in range(24) for j in (0, 30)]
     fig.update_yaxes(autorange="reversed")
-    fig.update_xaxes(tickvals=list(range(48)), ticktext=timelabels, col=1)
-    fig.update_xaxes(visible=False, col=2)
+    fig.update_xaxes(tickvals=list(range(48)), ticktext=timelabels, col=2)
+    fig.update_xaxes(visible=False, col=3)
+    fig.update_xaxes(visible=False, col=1)
+    fig.update_yaxes(showticklabels=False, col=1)
     plot = ui.plotly(fig).classes('h-full w-full')
     update_plot(date_sel.year, date_sel.month)
 
