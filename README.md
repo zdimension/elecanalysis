@@ -9,7 +9,7 @@ Outil d'analyse de consommation électrique et de comparaison de tarifs.
 
 ![image](https://github.com/zdimension/elecanalysis/assets/4533568/9e6795f3-db47-4d8d-82da-4b256476dd46)
 
-![image](https://github.com/zdimension/elecanalysis/assets/4533568/a5e8efba-982a-4a3e-b90b-bef7fc493143)
+![image](https://github.com/zdimension/elecanalysis/assets/4533568/69c724ba-2348-40b1-a6ef-f99e0a3c6643)
 
 ## Fonctionnement
 
