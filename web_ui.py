@@ -39,13 +39,14 @@ class YearMonthInput:
             self.month = int(month.value)
             self.on_change(self.year, self.month)
 
-        with ui.row().classes("items-end year-month-input"):
+        with ui.row().classes("items-end year-month-input") as row:
             previous_month = ui.button("◀", on_click=lambda: set_view_date(int(year.value), int(month.value) - 1))
             year = ui.select(options=[str(y) for y in range(activation_date.year, date.today().year + 1)],
                              value=str(self.year), on_change=change_handler, label="Année")
             month = ui.select(options=[str(m) for m in range(1, 13)], value=str(self.month), on_change=change_handler,
                               label="Mois")
             next_month = ui.button("▶", on_click=lambda: set_view_date(int(year.value), int(month.value) + 1))
+        return row
 
 
 tabs = []
@@ -156,8 +157,21 @@ def content():
 
     @ui.refreshable
     def price_table():
+        match period_kind.value:
+            case "quotidien":
+                queries = ["strftime('%d/%m', c.date)", f"c.date LIKE '{daily_period.year}-{daily_period.month:02d}%'"]
+                col = "Jour"
+            case "mensuel":
+                queries = ["strftime('%Y-%m', c.date)", "1"]
+                col = "Mois"
+            case "annuel":
+                queries = ["strftime('%Y', c.date)", "1"]
+                col = "Année"
+            case _:
+                raise NotImplemented
+
         columns = [
-            dict(name="month", label="Mois", field="month"),
+            dict(name="month", label=col, field="month"),
             {'name': "kwh", 'label': "kWh", 'field': "kwh"},
         ]
 
@@ -168,7 +182,9 @@ def content():
             columns.append({'name': f"diff_{plan.value}", 'label': f"% {EdfPlan(compare_base).display_name()}",
                             'field': f"diff_{plan.value}"})
 
-        conso = cur.execute(EdfPlan.query_plan_prices_monthly()).fetchall()
+        q = EdfPlan.query_plan_prices_period(*queries)
+        print(q)
+        conso = cur.execute(EdfPlan.query_plan_prices_period(*queries)).fetchall()
 
         def process(row):
             res = {"month": row[0], "kwh": f"{row[1] / 1000:.1f}"}
@@ -231,6 +247,9 @@ def content():
             </q-item-section>
           </q-item>
         """)
+        period_kind = ui.select(["quotidien", "mensuel", "annuel"], value="mensuel", label="Période", on_change=price_table.refresh)
+        daily_period = YearMonthInput(lambda *_: price_table.refresh())
+        daily_period.view().bind_visibility_from(period_kind, "value", value="quotidien")
 
     price_table()
 

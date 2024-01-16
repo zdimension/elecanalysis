@@ -53,7 +53,7 @@ class EdfPlan(enum.Enum):
         match self:
             case EdfPlan.TEMPO:
                 # noinspection SqlResolve
-                #return "SELECT tempo FROM tempo t WHERE t.date = c.date"
+                # return "SELECT tempo FROM tempo t WHERE t.date = c.date"
                 return "SELECT tempo FROM tempo t WHERE t.date = IIF(c.hour < 6, DATE(c.date, '-1 day'), c.date)"
             case EdfPlan.ZENFLEX:
                 # todo
@@ -126,3 +126,14 @@ class EdfPlan(enum.Enum):
             f"SUM(eur_{p.value}) as eur_{p.value}" for p in EdfPlan
         ]) + f" FROM ({EdfPlan.query_plan_prices_bihourly()}) c GROUP BY strftime('%Y-%m', c.date)"
 
+    @staticmethod
+    def query_plan_prices_period(date: str = "c.date", filter: str = "1") -> str:
+        """
+        Gives an SQL statement that returns the summarized consumption stats for each day with the following columns:
+        - date: YYYY-MM-DD
+        - value: consumption in Wh
+        - eur_{plan}: cost in € for {plan}
+        """
+        return f"SELECT {date}, sum(c.value) as value, " + ",".join([
+            f"SUM(eur_{p.value}) as eur_{p.value}" for p in EdfPlan
+        ]) + f" FROM ({EdfPlan.query_plan_prices_bihourly()}) c WHERE {filter} GROUP BY {date}"
