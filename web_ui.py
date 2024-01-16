@@ -197,10 +197,8 @@ def content():
 
         rows = [process(row) for row in conso]
 
-        table = ui.table(columns=columns, rows=rows).classes("h-full w-full table-fixed")
-        table.props("separator=cell wrap-cells")
-        if dense.value:
-            table.props("dense")
+        table = ui.table(columns=columns, rows=rows).classes("h-full w-full table-fixed overflow-auto")
+        table.props("separator=cell wrap-cells dense")
         for p in EdfPlan:
             table.add_slot(f"body-cell-plan_{p.value}", f'<q-td key="plan_{p.value}" :props="props" :style="props.row.plan_{p.value}_bgcolor">'
                            + "{{ props.value }}</q-td>")
@@ -219,7 +217,6 @@ def content():
         price_table.refresh()
 
     with ui.row().classes("items-end"):
-        dense = ui.checkbox(text="Dense", value=False, on_change=price_table.refresh)
         ui.select({p.value: p.display_name() for p in EdfPlan}, value=compare_base, label="Base 100%", on_change=base_changed)
         plans = ui.select({p.value: p.display_name() for p in EdfPlan}, label="Offres à comparer",
                           multiple=True,
