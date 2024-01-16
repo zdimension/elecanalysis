@@ -270,7 +270,7 @@ def index():
                     f()
 
     with ui.row():
-        ui.button("Forcer màj Enedis", on_click=lambda: (fetch_edf.fetch_enedis(upto=date.today() + timedelta(days=1)), all_tabs.refresh()))
+        ui.button("Forcer màj Enedis", on_click=lambda: (fetch_edf.fetch_enedis(), all_tabs.refresh()))
 
     all_tabs()
 

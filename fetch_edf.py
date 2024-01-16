@@ -30,7 +30,7 @@ def fetch_enedis(upto=None):
     while True:
         # last info is max ymd from db
         new_start_date = last_info + timedelta(days=1)
-        if new_start_date == start_date or new_start_date >= (upto or (date.today() - timedelta(days=1))):
+        if new_start_date == start_date or new_start_date >= date.today():
             break
         start_date = new_start_date
         end_date = start_date + timedelta(days=7)
