@@ -72,12 +72,12 @@ def fetch_tempo():
         last_info = date(*map(int, cur.execute(
             "SELECT year, month, day FROM tempo ORDER BY year DESC, month DESC, day DESC LIMIT 1").fetchone()))
     except TypeError:
-        last_info = activation_date - timedelta(days=1)
+        last_info = activation_date - timedelta(days=2)
 
     while True:
         # last info is max ymd from db
         new_start_date = last_info + timedelta(days=1)
-        if new_start_date == start_date or new_start_date >= date.today() - timedelta(days=1):
+        if new_start_date == start_date or new_start_date >= date.today():
             break
         start_date = new_start_date
         try:
