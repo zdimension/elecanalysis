@@ -12,6 +12,8 @@ class EdfPlan(enum.Enum):
     ZENFLEX = "zenflex"
     ZENWEEKEND = "zenweekend"
     ZENWEEKENDHC = "zenweekendhc"
+    TOTALSTDFIXE = "totalstdfixe"
+    TOTALSTDFIXEHC = "totalstdfixehc"
 
     def display_name(self) -> str:
         match self:
@@ -27,6 +29,10 @@ class EdfPlan(enum.Enum):
                 return "Zen Week-End"
             case EdfPlan.ZENWEEKENDHC:
                 return "Zen Week-End + Heures Creuses"
+            case EdfPlan.TOTALSTDFIXE:
+                return "Total Standard Fixe"
+            case EdfPlan.TOTALSTDFIXEHC:
+                return "Total Standard Fixe + Heures Creuses"
 
     def is_hp_sql(self) -> Optional[str]:
         """
@@ -37,7 +43,7 @@ class EdfPlan(enum.Enum):
         If the plan doesn't differentiate HC/HP, returns None.
         """
         match self:
-            case EdfPlan.HPHC | EdfPlan.TEMPO | EdfPlan.ZENWEEKENDHC:
+            case EdfPlan.HPHC | EdfPlan.TEMPO | EdfPlan.ZENWEEKENDHC | EdfPlan.TOTALSTDFIXEHC:
                 return "6 <= hour and hour < 22"
             case EdfPlan.ZENFLEX:
                 return "8 <= hour and hour < 13 or 18 <= hour and hour < 20"

@@ -237,6 +237,29 @@ def add_prices_pdf():
 30 39,46 26,83 18,81 18,81 18,81
 36 45,72 26,83 18,81 18,81 18,81
     """
+        },
+        "totalstdfixe": {
+            "2024-01-17": """
+3 9,51 0,1892
+6 12,50 0,1892
+12 19,08 0,1892
+15 22,14 0,1892
+18 25,17 0,1892
+24 32,05 0,1892
+30 37,71 0,1892
+36 44,62 0,1892
+    """
+        },
+        "totalstdfixehc": {
+            "2024-01-17": """
+6 13,00 0,1511 0,2048
+12 19,97 0,1511 0,2048
+15 23,21 0,1511 0,2048
+18 26,41 0,1511 0,2048
+24 33,22 0,1511 0,2048
+30 39,27 0,1511 0,2048
+36 45,40 0,1511 0,2048
+    """
         }
     }
 
@@ -247,12 +270,13 @@ def add_prices_pdf():
             for row in val:
                 power, sub, *kwh = row.split(" ")
                 sub = 12 * int(sub)
+                day_start = 0 if plan_data.day_kind_sql() is None else 1
                 if plan_data.is_hp_sql() is None:
-                    for day_kind, hchp in enumerate(kwh, 1):
+                    for day_kind, hchp in enumerate(kwh, day_start):
                         cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                     (plan, dt, power, sub, day_kind, hchp, hchp, dt_end))
                 else:
-                    for day_kind, (hc, hp) in enumerate(itertools.batched(kwh, 2), 1):
+                    for day_kind, (hc, hp) in enumerate(itertools.batched(kwh, 2), day_start):
                         cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                     (plan, dt, power, sub, day_kind, hp, hc, dt_end))
 
