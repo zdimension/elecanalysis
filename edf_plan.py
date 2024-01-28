@@ -18,7 +18,7 @@ class EdfPlan(enum.Enum):
             case EdfPlan.BASE:
                 return "Bleu Base"
             case EdfPlan.HPHC:
-                return "Bleu Heures Creuses"
+                return "Bleu Heures Creuses"
             case EdfPlan.TEMPO:
                 return "Bleu Tempo"
             case EdfPlan.ZENFLEX:
@@ -26,7 +26,7 @@ class EdfPlan(enum.Enum):
             case EdfPlan.ZENWEEKEND:
                 return "Zen Week-End"
             case EdfPlan.ZENWEEKENDHC:
-                return "Zen Week-End + Heures Creuses"
+                return "Zen Week-End + Heures Creuses"
 
     def is_hp_sql(self) -> Optional[str]:
         """
