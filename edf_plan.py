@@ -63,7 +63,8 @@ class EdfPlan(enum.Enum):
                 return "SELECT tempo FROM tempo t WHERE t.date = IIF(c.hour < 6, DATE(c.date, '-1 day'), c.date)"
             case EdfPlan.ZENFLEX:
                 # todo
-                return "1"
+                # noinspection SqlResolve
+                return "SELECT IIF(tempo = 3, 2, 1) FROM tempo t WHERE t.date = c.date"
             case EdfPlan.ZENWEEKEND | EdfPlan.ZENWEEKENDHC:
                 return "SELECT IIF(strftime('%w', c.date) IN ('0', '6'), 2, 1)"
             case _:
