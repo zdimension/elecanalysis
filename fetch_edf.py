@@ -81,7 +81,7 @@ def fetch_tempo():
             break
         start_date = new_start_date
         try:
-            tempo_data = tempo.get_days([str(start_date + timedelta(days=i)) for i in range(7)])
+            tempo_data = tempo.get_days([str(start_date + timedelta(days=i)) for i in range(100)])
         except requests.exceptions.HTTPError as e:
             print(e)
             break
