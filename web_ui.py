@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 import fetch_edf
 from config import config
 from db import cur, activation_date
-from edf_plan import EdfPlan
+from edf_plan import EdfPlan, query_plan_prices_period
 
 
 @dataclass
@@ -171,23 +171,23 @@ def content():
                 raise NotImplemented
 
         columns = [
-            dict(name="month", label=col, field="month"),
-            {'name': "kwh", 'label': "kWh", 'field': "kwh"},
+            dict(name="month", label=col, field="month", rowspan=2),
+            {'name': "kwh", 'label': "kWh", 'field': "kwh", "rowspan": 2},
         ]
 
         plans_obj = list(map(EdfPlan, plans_show))
 
         for plan in plans_obj:
-            columns.append(dict(name=f"plan_{plan.value}", label=f"Prix {plan.display_name()}", field=f"plan_{plan.value}"))
+            columns.append(dict(name=f"plan_{plan.value}_disp", label=f"{plan.display_name()}", colspan=2, align="center"))
+            columns.append(dict(name=f"plan_{plan.value}", label=f"Prix", field=f"plan_{plan.value}", sub=True))
             columns.append({'name': f"diff_{plan.value}", 'label': f"% {EdfPlan(compare_base).display_name()}",
-                            'field': f"diff_{plan.value}"})
+                            'field': f"diff_{plan.value}", 'sub': True})
 
-        q = EdfPlan.query_plan_prices_period(*queries)
-        print(q)
-        conso = cur.execute(EdfPlan.query_plan_prices_period(*queries)).fetchall()
+        q = query_plan_prices_period(plans_obj, price_mode.value, with_total=True, *queries)
+        conso = cur.execute(q).fetchall()
 
         def process(row):
-            res = {"month": row[0], "kwh": f"{row[1] / 1000:.1f}"}
+            res = {"month": row[0], "kwh": f"{row[1] / 1000 if row[1] is not None else float('nan'):.1f}"}
             vals = {}
             for p, v in zip(plans_obj, row[2:]):
                 f = f"plan_{p.value}"
@@ -213,13 +213,56 @@ def content():
 
         rows = [process(row) for row in conso]
 
-        table = ui.table(columns=columns, rows=rows).classes("h-full w-full table-fixed overflow-auto")
+        ui.html("""
+        <style>
+        .price-table tbody tr:last-child td {
+            border-top-width: 2px;
+        }
+        .price-table thead {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 1;
+        }
+        .price-table tbody tr:last-child {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            z-index: 1;
+        }
+        .price-table tbody tr:last-child td:first-child {
+            font-weight: bold;
+        }
+        </style>""")
+        table = ui.table(columns=columns, rows=rows).classes("h-full w-full table-fixed overflow-auto price-table")
         table.props("separator=cell wrap-cells dense")
         for p in EdfPlan:
-            table.add_slot(f"body-cell-plan_{p.value}", f'<q-td key="plan_{p.value}" :props="props" :style="props.row.plan_{p.value}_bgcolor">'
+            table.add_slot(f"body-cell-plan_{p.value}_disp", f'''<q-td key="plan_{p.value}_disp" :props="props" style="border-left-width: 3px;">'''
+                           + "{{ props.value }}</q-td>")
+            table.add_slot(f"body-cell-plan_{p.value}", f'''<q-td key="plan_{p.value}" :props="props" :style="'border-left-width: 3px;' + props.row.plan_{p.value}_bgcolor">'''
                            + "{{ props.value }}</q-td>")
             table.add_slot(f"body-cell-diff_{p.value}", f'<q-td key="diff_{p.value}" :props="props" :style="props.row.diff_{p.value}_bgcolor">'
                            + "{{ props.value }}</q-td>")
+            table.add_slot(f"body-cell-plan_{p.value}_disp", "")
+            table.add_slot('header', r'''
+                <q-tr :props="props">
+                    <template v-for="col in props.cols">
+                        <q-th v-if="!col.sub" :key="col.name" :props="props" :colspan="col.colspan" :rowspan="col.rowspan"
+                            :style="col.name.startsWith('plan_') ? 'border-left-width: 3px' : ''">
+                            {{ col.label }}
+                        </q-th>
+                    </template>
+                </q-tr>
+                <q-tr :props="props">
+                    <template></template>
+                    <template v-for="col in props.cols">
+                        <q-th v-if="col.sub" :key="col.name" :props="props" 
+                            :style="col.name.startsWith('plan_') ? 'border-left-width: 3px' : ''">
+                            {{ col.label }}
+                        </q-th>
+                    </template>
+                </q-tr>
+            ''')
 
     def base_changed(e):
         nonlocal compare_base
@@ -228,12 +271,18 @@ def content():
 
     def show_changed(e):
         nonlocal plans_show
-        plans_show = sorted(e.value)
+        if len(e.value):
+            plans_show = sorted(e.value)
+        else:
+            plans_show = [EdfPlan.BASE.value]
         plans.set_value(plans_show)
+        if compare_base not in plans_show:
+            base_select.set_value(plans_show[0])
         price_table.refresh()
 
     with ui.row().classes("items-end"):
-        ui.select({p.value: p.display_name() for p in EdfPlan}, value=compare_base, label="Base 100%", on_change=base_changed)
+        price_mode = ui.select({"real": "Tarif au moment de la consommation", "current": "Tarif actuel"}, value="current", label="Mode de calcul", on_change=price_table.refresh)
+        base_select = ui.select({p.value: p.display_name() for p in EdfPlan}, value=compare_base, label="Base 100%", on_change=base_changed)
         plans = ui.select({p.value: p.display_name() for p in EdfPlan}, label="Offres à comparer",
                           multiple=True,
                           value=plans_show, on_change=show_changed)
