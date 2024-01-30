@@ -1,0 +1,9 @@
+matplotlib==3.8.2
+python-dotenv==1.0.0
+requests==2.31.0
+urllib3==2.1.0
+dataclasses-json>=0.6.3
+numpy~=1.26.2
+nicegui~=1.4.8
+plotly~=5.18.0
+pandas~=2.1.4

@@ -1,0 +1,3 @@
+-r common.txt
+pyinstaller~=6.3.0
+pywebview~=4.4.1
