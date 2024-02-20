@@ -1,0 +1,2 @@
+-r common.txt
+platformdirs~=4.2.0

@@ -1,12 +1,12 @@
 # coding: utf-8
-import requests
+from aiohttp_requests import requests
 
 API_FORMAT = "https://www.api-couleur-tempo.fr/api/{endpoint}"
 
 
-def get_days(days: list[str]) -> list[str]:
+async def get_days(days: list[str]) -> list[dict]:
     url = API_FORMAT.format(endpoint="joursTempo")
-    req = requests.get(url, params={"dateJour[]": days})
+    req = await requests.get(url, params={"dateJour[]": days})
     req.raise_for_status()
-    res = req.json()
+    res = await req.json()
     return res

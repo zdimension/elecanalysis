@@ -1,4 +1,5 @@
 # coding: utf-8
+import asyncio
 import io
 import itertools
 from datetime import date, timedelta, datetime
@@ -11,8 +12,9 @@ from apis import myelectricaldata, tempo, datagouvfr
 from db import cur, db, activation_date
 from edf_plan import EdfPlan
 
+log_callback = print
 
-def fetch_enedis(upto=None):
+async def fetch_enedis(upto=None):
     """
     Fetches the consumption data from Enedis using the MyElectricalData API.
 
@@ -35,12 +37,13 @@ def fetch_enedis(upto=None):
         start_date = new_start_date
         end_date = start_date + timedelta(days=7)
         try:
-            conso_data = myelectricaldata.fetch_api("consumption_load_curve", (start_date, end_date))[
+            log_callback("Fetching MED for", str(start_date), "to", str(end_date))
+            conso_data = (await myelectricaldata.fetch_api("consumption_load_curve", (start_date, end_date)))[
                 "meter_reading"]["interval_reading"]
         except requests.exceptions.HTTPError as e:
-            print(e)
+            log_callback(e)
             break
-        print("Saving", len(conso_data), "Enedis rows")
+        log_callback("Saving", len(conso_data), "Enedis rows")
         for reading in conso_data:
             dt = datetime.fromisoformat(reading["date"]) - timedelta(minutes=30)
 
@@ -54,7 +57,7 @@ def fetch_enedis(upto=None):
         db.commit()
 
 
-def fetch_tempo():
+async def fetch_tempo():
     """
     Fetches the Tempo data from the api-couleur-tempo.fr API.
 
@@ -81,12 +84,12 @@ def fetch_tempo():
             break
         start_date = new_start_date
         try:
-            tempo_data = tempo.get_days([str(start_date + timedelta(days=i)) for i in range(100)])
+            tempo_data = await tempo.get_days([str(start_date + timedelta(days=i)) for i in range(100)])
         except requests.exceptions.HTTPError as e:
-            print(e)
+            log_callback(e)
             break
 
-        print("Saving", len(tempo_data), "Tempo rows")
+        log_callback("Saving", len(tempo_data), "Tempo rows")
         for reading in tempo_data:
             dt = date.fromisoformat(reading["dateJour"])
             val = reading["codeJour"]
@@ -114,7 +117,7 @@ if not hasattr(itertools, "batched"):
     setattr(itertools, "batched", batched)
 
 
-def fetch_prices():
+async def fetch_prices():
     """
     Fetches the prices for Base and Bleu from data.gouv.fr and inserts them in the database.
 
@@ -130,9 +133,9 @@ def fetch_prices():
             update = date.today() - date.fromisoformat(existing[0]) > timedelta(days=1)
 
         if update:
-            csv = datagouvfr.get_resource_content(rid)
+            csv = await datagouvfr.get_resource_content(rid)
             # parse using pandas
-            df = pd.read_csv(io.StringIO(csv.decode("utf-8")), sep=";")
+            df = pd.read_csv(io.StringIO(csv), sep=";")
             # check if column PART_VARIABLE_TTC exists
             if "PART_VARIABLE_TTC" in df.columns:
                 df["PART_VARIABLE_HC_TTC"] = df["PART_VARIABLE_TTC"]
@@ -146,15 +149,17 @@ def fetch_prices():
 
             def dec_to_fixed(dec, digits):
                 # go from "0,0578" to 578
-                return int(Decimal(dec.replace(",", ".")) * (10 ** digits))
+                return int(Decimal(dec.replace(",", ".") if type(dec) == str else dec) * (10 ** digits))
 
             for index, row in df.iterrows():
+                if type(row["DATE_DEBUT"]) is not str:
+                    continue
                 cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, 0, ?, ?, ?)",
                             (name, dmy_to_iso(row["DATE_DEBUT"]), row["P_SOUSCRITE"],
                              dec_to_fixed(row["PART_FIXE_TTC"], 2), dec_to_fixed(row["PART_VARIABLE_HP_TTC"], 4),
                              dec_to_fixed(row["PART_VARIABLE_HC_TTC"], 4), dmy_to_iso(row["DATE_FIN"])))
 
-            print("Updated tariff", name)
+            log_callback("Updated tariff", name)
             cur.execute(f"INSERT OR REPLACE INTO config VALUES ('tarif_{name}', ?)", (date.today().isoformat(),))
             db.commit()
 
@@ -200,31 +205,31 @@ def add_prices_pdf():
 36 44,42 12,96 16,09 14,86 18,94 15,68 75,62
     """
         }, # TODO: corriger quand les chiffres officiels sortent
-        "hphc": {
-            "2024-02-01": """
-6 13,01 20,68 27,00
-9 16,70 20,68 27,00
-12 20,13 20,68 27,00
-15 23,40 20,68 27,00
-18 26,64 20,68 27,00
-24 33,44 20,68 27,00
-30 39,63 20,68 27,00
-36 44,79 20,68 27,00
-    """
-        },
-        "base": {
-            "2024-02-01": """
-3 9,63 25,16
-6 12,60 25,16
-9 15,79 25,16
-12 19,04 25,16
-15 22,07 25,16
-18 25,09 25,16
-24 31,76 25,16
-30 37,44 25,16
-36 44,82 25,16
-    """
-        },
+#         "hphc": {
+#             "2024-02-01": """
+# 6 13,01 20,68 27,00
+# 9 16,70 20,68 27,00
+# 12 20,13 20,68 27,00
+# 15 23,40 20,68 27,00
+# 18 26,64 20,68 27,00
+# 24 33,44 20,68 27,00
+# 30 39,63 20,68 27,00
+# 36 44,79 20,68 27,00
+#     """
+#         },
+#         "base": {
+#             "2024-02-01": """
+# 3 9,63 25,16
+# 6 12,60 25,16
+# 9 15,79 25,16
+# 12 19,04 25,16
+# 15 22,07 25,16
+# 18 25,09 25,16
+# 24 31,76 25,16
+# 30 37,44 25,16
+# 36 44,82 25,16
+#     """
+#         },
         "zenflex": {
             "2023-08-01": """
 6 12,62 12,95 22,28 22,28 67,12
@@ -347,12 +352,12 @@ def add_prices_pdf():
 
     db.commit()
 
-def fetch_apis():
-    fetch_enedis()
-    fetch_tempo()
-    fetch_prices()
+async def fetch_apis():
+    await fetch_enedis()
+    await fetch_tempo()
+    await fetch_prices()
 
 
-def fetch_loop():
-    fetch_apis()
+async def fetch_loop():
+    await fetch_apis()
     add_prices_pdf()
