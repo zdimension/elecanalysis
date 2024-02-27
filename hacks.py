@@ -1,6 +1,8 @@
 # coding: utf-8
+import sys
 import warnings
 
+in_bundle = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
 def init():
     import numpy

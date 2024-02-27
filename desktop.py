@@ -77,4 +77,10 @@ async def index():
     return RedirectResponse("/loading")
 
 def run():
-    nui.run(reload=False, port=native.find_open_port(), native=True, window_size=(1366, 768), title="elecanalysis")
+    title = "elecanalysis"
+
+    import hacks
+    if hacks.in_bundle:
+        import _version
+        title += f" {_version.__version__}"
+    nui.run(reload=False, port=native.find_open_port(), native=True, window_size=(1366, 768), title=title)
