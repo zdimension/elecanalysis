@@ -6,3 +6,4 @@ __pycache__
 app.db
 build/
 dist/
+_version.py
