@@ -21,6 +21,12 @@ Récupère :
 
 ## Usage
 
+### Utilisateur
+
+Télécharger l'exe depuis la section Releases à droite.
+
+### Développeur
+
 Nécessite :
 - Python ≥ 3.10
 - les dépendances (`pip install -r requirements.txt`)
