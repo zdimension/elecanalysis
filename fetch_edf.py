@@ -5,6 +5,7 @@ import itertools
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 
+import aiohttp
 import pandas as pd
 import requests
 
@@ -40,7 +41,7 @@ async def fetch_enedis(upto=None):
             log_callback("Fetching MED for", str(start_date), "to", str(end_date))
             conso_data = (await myelectricaldata.fetch_api("consumption_load_curve", (start_date, end_date)))[
                 "meter_reading"]["interval_reading"]
-        except requests.exceptions.HTTPError as e:
+        except aiohttp.ClientResponseError as e:
             log_callback(e)
             break
         log_callback("Saving", len(conso_data), "Enedis rows")
@@ -85,7 +86,7 @@ async def fetch_tempo():
         start_date = new_start_date
         try:
             tempo_data = await tempo.get_days([str(start_date + timedelta(days=i)) for i in range(100)])
-        except requests.exceptions.HTTPError as e:
+        except aiohttp.ClientResponseError as e:
             log_callback(e)
             break
 
