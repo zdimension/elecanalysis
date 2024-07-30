@@ -16,6 +16,7 @@ import os
 os.chdir(DATA_DIR)
 
 sys.stdout = open('logs.txt', 'w')
+sys.stderr = sys.stdout
 print("Using", DATA_DIR, "as storage dir")
 
 if not (DATA_DIR / ".env").exists():
