@@ -10,16 +10,15 @@ import sys
 
 DATA_DIR = platformdirs.user_data_path("elecanalysis", "zdimension")
 
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 # set cwd to the data directory
 import os
-if not os.path.exists(DATA_DIR):
-    os.mkdir(DATA_DIR)
 os.chdir(DATA_DIR)
 
 sys.stdout = open('logs.txt', 'w')
 print("Using", DATA_DIR, "as storage dir")
 
-if not os.path.exists(DATA_DIR / ".env"):
+if not (DATA_DIR / ".env").exists():
     with open(DATA_DIR / ".env", "w") as f:
         f.write("PORT=8129\n")
 
