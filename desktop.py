@@ -15,7 +15,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 import os
 os.chdir(DATA_DIR)
 
-sys.stdout = open('logs.txt', 'w')
+sys.stdout = open('logs.txt', 'w', buffering=1)
 sys.stderr = sys.stdout
 print("Using", DATA_DIR, "as storage dir")
 
