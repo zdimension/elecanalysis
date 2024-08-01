@@ -12,8 +12,10 @@ async def fetch_api(endpoint, range: Optional[tuple[date, date]] = None):
     url = API_FORMAT.format(endpoint=endpoint, meter_id=config.config["METER_ID"],
                             params="" if range is None else f"/start/{range[0]}/end/{range[1]}")
     req = await requests.get(url, headers={"Authorization": config.config["MED_TOKEN"]})
-    req.raise_for_status()
     res = await req.json()
+    if not req.ok:
+        print(res)
+    req.raise_for_status()
     return res
 
 
