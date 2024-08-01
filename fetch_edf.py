@@ -30,6 +30,8 @@ async def fetch_enedis(upto=None):
     except TypeError:
         last_info = activation_date - timedelta(days=1)
 
+    last_info = max(date.today() - timedelta(days=2 * 365), last_info)
+
     while True:
         # last info is max ymd from db
         new_start_date = last_info + timedelta(days=1)
@@ -77,6 +79,8 @@ async def fetch_tempo():
             "SELECT year, month, day FROM tempo ORDER BY year DESC, month DESC, day DESC LIMIT 1").fetchone()))
     except TypeError:
         last_info = activation_date - timedelta(days=2)
+
+    last_info = max(date.today() - timedelta(days=2 * 365 + 1), last_info)
 
     while True:
         # last info is max ymd from db
