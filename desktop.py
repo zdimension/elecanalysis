@@ -65,7 +65,13 @@ def loading():
     task = asyncio.create_task(fetch_edf.fetch_loop())
     import ui
     _ = ui
-    nui.timer(0.1, lambda: task.done() and nui.open("/app"))
+    done = False
+    def timer_callback():
+        nonlocal done
+        if not done and task.done():
+            nui.open("/app")
+            done = True
+    nui.timer(0.1, timer_callback)
 
 @nui.page("/")
 async def index():

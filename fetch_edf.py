@@ -355,7 +355,9 @@ def add_prices_pdf():
                         cur.execute("INSERT OR REPLACE INTO edf_plan_slice VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                     (plan, dt, power, sub, day_kind, hp, hc, dt_end))
 
+    log_callback("committing to db")
     db.commit()
+    log_callback("done")
 
 async def fetch_apis():
     await fetch_enedis()
@@ -364,5 +366,6 @@ async def fetch_apis():
 
 
 async def fetch_loop():
+    log_callback("fetch loop")
     await fetch_apis()
     add_prices_pdf()
