@@ -5,6 +5,7 @@ import sqlite3
 from datetime import date
 
 from apis import myelectricaldata
+from config import config
 
 try:
     db = sqlite3.connect("file:app.db?mode=rw", uri=True)
@@ -63,4 +64,6 @@ async def load_meter_info():
     sub_power = int(meter_info["customer"]["usage_points"][0]["contracts"]["subscribed_power"].split(" ")[0])
     activation_date = date.fromisoformat(
         meter_info["customer"]["usage_points"][0]["contracts"]["last_activation_date"][:10])
+    if override_date := config.get("OVERRIDE_START_DATE"):
+        activation_date = date.fromisoformat(override_date)
 
